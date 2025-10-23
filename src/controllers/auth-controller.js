@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-import { validationResult } from 'express-validator';
+import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 
@@ -24,7 +24,7 @@ class authController {
         return res.status(400).json({ error: 'Registration error', errors });
       }
       const { username, password, email } = req.body;
-      const existingUser = await prisma.user.findMany({
+      const existingUser = await prisma.user.findFirst({
         where: {
           OR: [{ username }, { email }],
         },
@@ -56,7 +56,7 @@ class authController {
           userId: true,
           username: true,
           email: true,
-          role: true,
+          isVerified: false,
         },
       });
 
@@ -72,7 +72,7 @@ class authController {
   async login(req, res) {
     try {
       const { username, password } = req.body;
-      const user = await prisma.user.findFirst({
+      const user = await prisma.user.findUnique({
         where: {
           username: username,
         },
@@ -82,7 +82,8 @@ class authController {
           error: `User with this ${username} not found`,
         });
       }
-      const validPassword = bcrypt.compareSync(password, user.hashedPassword);
+
+      const validPassword = await bcrypt.compare(password, user.hashedPassword);
       if (!validPassword) {
         return res.status(400).json({
           error: `password is Invalid`,
@@ -95,6 +96,13 @@ class authController {
       res.status(400).json({ error: 'login error' });
     }
   }
+
+  //async logout(req, res) {
+  // try {
+  // } catch (error) {
+  //  console.log(error);}
+  // res.status(400).json({ error: 'logout error' });
+  //}
 
   async getUsers(req, res) {
     try {

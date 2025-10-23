@@ -8,6 +8,7 @@ export function rolemiddle(roles) {
     if (req.method === 'OPTIONS') {
       return next();
     }
+
     try {
       const token = req.headers.authorization.split(' ')[1];
       if (!token) {
@@ -15,18 +16,18 @@ export function rolemiddle(roles) {
       }
       const { roles: roles } = jwt.verify(token, process.env.JWT_SECRET);
       let hasRole = false;
-      userRoles.Array.forEach((role) => {
+      user.roles.Array.forEach((role) => {
         if (roles.includes(role)) {
           hasRole = true;
         }
       });
       if (!hasRole) {
-        return res.status(400).json({ message: 'Have not access' });
+        return res.status(403).json({ message: 'Have not access' });
       }
       next();
     } catch (error) {
       console.log(error);
-      return res.status(400).json({ message: 'User is not authorized' });
+      return res.status(401).json({ message: 'User is not authorized' });
     }
   };
 }
