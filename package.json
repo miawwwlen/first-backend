@@ -2,10 +2,12 @@
   "dependencies": {
     "@prisma/client": "^6.17.1",
     "bcryptjs": "^3.0.2",
+    "class-transformer": "^0.5.1",
     "connect-redis": "^9.0.0",
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
+    "express-rate-limit": "^8.1.0",
     "express-session": "^1.18.2",
     "jsonwebtoken": "^9.0.2",
     "mailtrap": "^4.3.0",

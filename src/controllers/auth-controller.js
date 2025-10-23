@@ -1,71 +1,19 @@
 import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcryptjs';
-import { v4 as uuidv4 } from 'uuid';
-import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
+import { AuthService } from '../service/auth-service.js';
 
 dotenv.config();
 
 const prisma = new PrismaClient();
 
-const generatedAccessToken = (id, role) => {
-  const payload = {
-    id,
-    role,
-  };
-  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '24h' });
-};
-
 class authController {
   async registration(req, res) {
     try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({ error: 'Registration error', errors });
-      }
-      const { username, password, email } = req.body;
-      const existingUser = await prisma.user.findFirst({
-        where: {
-          OR: [{ username }, { email }],
-        },
-      });
-
-      if (existingUser) {
-        if (existingUser.username === username) {
-          return res.status(400).json({
-            error: 'User with this username already exists',
-          });
-        }
-        if (existingUser.email === email) {
-          return res.status(400).json({
-            error: 'User with this email already exists',
-          });
-        }
-      }
-
-      const hashedPassword = await bcrypt.hash(password, 7);
-      const newUser = await prisma.user.create({
-        data: {
-          username,
-          email,
-          hashedPassword,
-          role: 'USER',
-          isVerified: false,
-        },
-        select: {
-          userId: true,
-          username: true,
-          email: true,
-          isVerified: false,
-        },
-      });
-
-      res
-        .status(201)
-        .json({ message: 'User registred sucessfully', user: newUser });
+      const userSession = await AuthService.registerUser(req.body, req.session);
+      res.status(201).json({ user: userSession });
     } catch (error) {
       console.log(error);
-      res.status(400).json({ error: 'Registration error' });
+      res.status(400).json({ error: 'Invalid registration data' });
     }
   }
 
@@ -97,12 +45,13 @@ class authController {
     }
   }
 
-  //async logout(req, res) {
-  // try {
-  // } catch (error) {
-  //  console.log(error);}
-  // res.status(400).json({ error: 'logout error' });
-  //}
+  async logout(req, res) {
+    try {
+    } catch (error) {
+      console.log(error);
+    }
+    res.status(400).json({ error: 'logout error' });
+  }
 
   async getUsers(req, res) {
     try {

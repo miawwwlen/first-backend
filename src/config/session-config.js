@@ -1,8 +1,9 @@
 import session from 'express-session';
 import { RedisStore } from 'connect-redis';
-import { RedisClient } from '../redis.js';
 import dotenv from 'dotenv';
 import express from 'express';
+
+import { RedisClient } from '../redis.js';
 
 dotenv.config();
 
