@@ -1,44 +1,36 @@
-import { PrismaClient } from '@prisma/client';
 import dotenv from 'dotenv';
-import { AuthService } from '../service/auth-service.js';
+import { AuthService } from '../services/auth-service.js';
+
+const authService = new AuthService();
 
 dotenv.config();
-
-const prisma = new PrismaClient();
 
 class authController {
   async registration(req, res) {
     try {
-      const userSession = await AuthService.registerUser(req.body, req.session);
-      res.status(201).json({ user: userSession });
+      const userSession = await authService.registerUser(req.body, req.session);
+      res.status(201).json({ message: 'User registered', user: userSession });
     } catch (error) {
       console.log(error);
       res.status(400).json({ error: 'Invalid registration data' });
     }
   }
 
+  async verifyEmail(req, res) {
+    try {
+      const { token } = req.query;
+      const result = await authService.verifyEmail(token);
+      res.status(200).json(result);
+    } catch (error) {
+      console.log(error);
+      res.status(400).json({ error: 'Email verification error' });
+    }
+  }
+
   async login(req, res) {
     try {
-      const { username, password } = req.body;
-      const user = await prisma.user.findUnique({
-        where: {
-          username: username,
-        },
-      });
-      if (!user) {
-        return res.status(400).json({
-          error: `User with this ${username} not found`,
-        });
-      }
-
-      const validPassword = await bcrypt.compare(password, user.hashedPassword);
-      if (!validPassword) {
-        return res.status(400).json({
-          error: `password is Invalid`,
-        });
-      }
-      const token = generatedAccessToken(user.userId, user.role);
-      return res.json({ token });
+      const user = await authService.login(req.body, req.session);
+      res.status(200).json({ message: 'User logged in', user });
     } catch (error) {
       console.log(error);
       res.status(400).json({ error: 'login error' });
@@ -47,21 +39,22 @@ class authController {
 
   async logout(req, res) {
     try {
+      await authService.logout(req);
+      res.clearCookie('connect.sid');
+      return res.json({ message: 'Logged out' });
     } catch (error) {
-      console.log(error);
+      console.error(error);
+      return res.status(500).json({ error: 'Logout failed' });
     }
-    res.status(400).json({ error: 'logout error' });
   }
 
   async getUsers(req, res) {
     try {
-      const users = await prisma.user.findMany();
-      res.json(users);
+      const users = await authService.getAllUsers();
+      res.status(200).json({ users });
     } catch (error) {
       console.error(error);
-      res.status(400).json({ error: 'Failed to fetch users' });
     }
   }
 }
-
 export default new authController();
