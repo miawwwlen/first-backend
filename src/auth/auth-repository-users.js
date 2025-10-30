@@ -1,8 +1,12 @@
 import { PrismaClient } from '@prisma/client';
-export class AuthRepository {
+import { AuthRepositoryTokens } from './auth-repository-tokens.js';
+
+export class AuthRepositoryUsers {
   constructor() {
     this.prisma = new PrismaClient();
+    this.tokenRepository = new AuthRepositoryTokens();
   }
+
   async findByEmail(email) {
     return this.prisma.user.findUnique({
       where: { email },
@@ -14,21 +18,11 @@ export class AuthRepository {
       where: { username },
     });
   }
-  async findByVerificationToken(token) {
-    return this.prisma.token.findUnique({
-      where: { token },
-    });
-  }
+
   async verifyUser(userId) {
     return this.prisma.user.update({
       where: { userId },
       data: { isVerified: true, expiresAt: null },
-    });
-  }
-  async setVereificationToken(userId, token, expiresAt) {
-    return this.prisma.token.update({
-      where: { userId },
-      data: { token, expiresAt },
     });
   }
 
@@ -56,13 +50,15 @@ export class AuthRepository {
     });
 
     if (verificationToken) {
-      const expiresAt = tokenExpiration ? new Date(tokenExpiration) : undefined;
+      const expiresAt = tokenExpiration
+        ? new Date(Date.now() + tokenExpiration)
+        : new Date(Date.now() + 24 * 60 * 60 * 1000);
       await this.prisma.token.create({
         data: {
           token: verificationToken,
           email: email,
           type: 'VERIFICATION',
-          expiresAt: expiresAt || new Date(Date.now() + 24 * 60 * 60 * 1000),
+          expiresAt: expiresAt,
         },
       });
     }

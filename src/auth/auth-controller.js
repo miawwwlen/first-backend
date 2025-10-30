@@ -40,8 +40,7 @@ class authController {
   async logout(req, res) {
     try {
       await authService.logout(req);
-      res.clearCookie('connect.sid');
-      return res.json({ message: 'Logged out' });
+      return res.status(200).json({ message: 'Logged out' });
     } catch (error) {
       console.error(error);
       return res.status(500).json({ error: 'Logout failed' });
@@ -54,6 +53,17 @@ class authController {
       res.status(200).json({ users });
     } catch (error) {
       console.error(error);
+    }
+  }
+
+  async resetPassword(req, res) {
+    try {
+      const { email } = req.body;
+      await authService.resetPassword(email);
+      res.status(200).json({ message: 'Password reset email sent' });
+    } catch (error) {
+      console.error(error);
+      res.status(400).json({ error: 'Password reset error' });
     }
   }
 }

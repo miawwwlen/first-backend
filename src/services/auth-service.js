@@ -1,16 +1,19 @@
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 
-import { mailService } from '../utils/mail-service.js';
-import { AuthRepository } from '../auth/dto/auth-repository.js';
+import { mailService } from '../mailServices/mail-service.js';
+import { AuthRepositoryUsers } from '../auth/auth-repository-users.js';
+import { AuthRepositoryTokens } from '../auth/auth-repository-tokens.js';
 
 export class AuthService {
   constructor() {
-    this.authRepository = new AuthRepository();
+    this.AuthRepositoryUsers = new AuthRepositoryUsers();
+    this.AuthRepositoryTokens = new AuthRepositoryTokens();
+    this.mailService = mailService;
   }
 
   async registerUser(data, session) {
-    const candidate = await this.authRepository.findByEmail(data.email);
+    const candidate = await this.AuthRepositoryUsers.findByEmail(data.email);
     if (candidate) {
       throw new Error(`User with email ${data.email} already exists`);
     }
@@ -19,7 +22,7 @@ export class AuthService {
     const verificationToken = uuidv4();
     const tokenExpiration = Date.now() + 24 * 60 * 60 * 1000;
 
-    const user = await this.authRepository.registerUser(
+    const user = await this.AuthRepositoryUsers.registerUser(
       data.email,
       hashedPassword,
       data.username,
@@ -28,14 +31,11 @@ export class AuthService {
       tokenExpiration
     );
 
-    if (
-      mailService &&
-      typeof mailService.sendVerificationEmail === 'function'
-    ) {
+    if (mailService) {
       try {
         await mailService.sendVerificationEmail(user.email, verificationToken);
-      } catch (e) {
-        console.warn('Failed to send verification email:', e.message || e);
+      } catch (error) {
+        console.log(error);
       }
     }
 
@@ -49,9 +49,10 @@ export class AuthService {
     if (session) {
       try {
         session.user = sessionUser;
-      } catch (e) {}
+      } catch (error) {
+        console.log(error);
+      }
     }
-
     return sessionUser;
   }
 
@@ -59,15 +60,15 @@ export class AuthService {
     if (!token) {
       throw new Error('Verification token is required');
     }
-    const tokenRecord = await this.authRepository.findByVerificationToken(
+    const tokenRecord = await this.AuthRepositoryTokens.findByVerificationToken(
       token
     );
     if (!tokenRecord) {
       throw new Error('Invalid or expired verification token');
     }
-    const user = await this.authRepository.findByEmail(tokenRecord.email);
-    if (!user) throw new Error('User for token not found');
-    await this.authRepository.verifyUser(user.userId);
+    const user = await this.AuthRepositoryTokens.findByEmail(tokenRecord.email);
+    if (!user) throw new Error('User not found');
+    await this.AuthRepositoryUsers.verifyUser(user.userId);
     return { message: 'Email successfully verified' };
   }
 
@@ -75,7 +76,7 @@ export class AuthService {
     if (!data?.username || !data?.password) {
       throw new Error('username and password are required');
     }
-    const user = await this.authRepository.findByUsername(data.username);
+    const user = await this.AuthRepositoryUsers.findByUsername(data.username);
     if (!user) {
       throw new Error('User not found');
     }
@@ -98,9 +99,10 @@ export class AuthService {
     if (session) {
       try {
         session.user = sessionUser;
-      } catch (e) {}
+      } catch (error) {
+        console.log(error);
+      }
     }
-
     return sessionUser;
   }
 
@@ -111,9 +113,46 @@ export class AuthService {
         if (err) return reject(err);
         try {
           req.res && req.res.clearCookie && req.res.clearCookie('connect.sid');
-        } catch (e) {}
+        } catch (error) {
+          console.log(error);
+        }
         resolve();
       });
     });
+  }
+
+  async resetPassword(req, res) {
+    try {
+      if (!req.cookies) {
+        return res.status(400).json({ error: 'Cookies not available' });
+      }
+
+      const email = req.cookies.email;
+      if (!email) {
+        return res.status(400).json({ error: 'Email is required in cookies' });
+      }
+
+      const resetToken = uuidv4();
+      const tokenExpiration = Date.now() + 1 * 60 * 60 * 1000;
+
+      await this.AuthRepositoryTokens.savePasswordResetToken(
+        email,
+        resetToken,
+        tokenExpiration
+      );
+      if (this.mailService) {
+        try {
+          await this.mailService.sendPasswordResetEmail(user.email, resetToken);
+        } catch (error) {
+          console.log(error);
+        }
+      } else {
+        console.log('Mail service not available');
+      }
+      return { message: 'Password reset email sent' };
+    } catch (error) {
+      console.log(error);
+      throw new Error('Password reset error');
+    }
   }
 }

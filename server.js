@@ -3,8 +3,11 @@ import dotenv from 'dotenv';
 import session from 'express-session';
 import cookieParser from 'cookie-parser';
 import { RedisStore } from 'connect-redis';
-import router from './src/auth/dto/auth-router.js';
+import 'reflect-metadata';
+
+import router from './src/auth/auth-router.js';
 import { RedisClient } from './redis.js';
+
 dotenv.config();
 
 const app = express();

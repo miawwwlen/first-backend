@@ -16,17 +16,3 @@ export function validateDTO(DTOClass) {
   };
 }
 
-export function isAuth(req, res, next) {
-  if (!req.session || !req.session.user) {
-    return res.status(401).json({ message: 'Unauthorized' });
-  }
-  next();
-}
-
-export function roleAdmin(req, res, next) {
-  const user = req.session.user;
-  if (user.role !== 'ADMIN') {
-    return res.status(403).json({ message: 'Forbidden: Admins only' });
-  }
-  next();
-}
