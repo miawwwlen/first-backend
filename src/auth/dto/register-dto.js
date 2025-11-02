@@ -1,4 +1,4 @@
-import { IsEmail, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
 
 export class RegisterUserDTO {
   email;
@@ -13,7 +13,11 @@ export class RegisterUserDTO {
 }
 
 IsEmail()(RegisterUserDTO.prototype, 'email');
+IsString()(RegisterUserDTO.prototype, 'email');
+IsNotEmpty()(RegisterUserDTO.prototype, 'email');
+IsNotEmpty()(RegisterUserDTO.prototype, 'username');
 IsString()(RegisterUserDTO.prototype, 'username');
 MinLength(4)(RegisterUserDTO.prototype, 'username');
+IsNotEmpty()(RegisterUserDTO.prototype, 'password');
 IsString()(RegisterUserDTO.prototype, 'password');
 MinLength(6)(RegisterUserDTO.prototype, 'password');

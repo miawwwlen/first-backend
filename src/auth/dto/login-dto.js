@@ -1,4 +1,4 @@
-import { IsString, MinLength } from 'class-validator';
+import { IsNotEmpty, IsString, MinLength } from 'class-validator';
 
 export class loginUserDTO {
   username;
@@ -11,6 +11,8 @@ export class loginUserDTO {
 }
 
 IsString()(loginUserDTO.prototype, 'username');
+IsNotEmpty()(loginUserDTO.prototype, 'username');
 MinLength(4)(loginUserDTO.prototype, 'username');
+IsNotEmpty()(loginUserDTO.prototype, 'password');
 IsString()(loginUserDTO.prototype, 'password');
 MinLength(6)(loginUserDTO.prototype, 'password');

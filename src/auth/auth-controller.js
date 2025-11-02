@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
-import { AuthService } from '../services/auth-service.js';
+import { AuthService } from './auth-service.js';
 
 const authService = new AuthService();
 

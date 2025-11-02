@@ -1,14 +1,15 @@
 import bcrypt from 'bcryptjs';
-import { v4 as uuidv4 } from 'uuid';
 
-import { mailService } from '../mailServices/mail-service.js';
-import { AuthRepositoryUsers } from '../auth/auth-repository-users.js';
-import { AuthRepositoryTokens } from '../auth/auth-repository-tokens.js';
+import { mailService } from '../mail/mail-service.js';
+import { AuthRepositoryUsers } from './repository/auth-repository-users.js';
+import { AuthRepositoryTokens } from './repository/auth-repository-tokens.js';
+import { TokenService } from './repository/auth-token-service.js';
 
 export class AuthService {
   constructor() {
     this.AuthRepositoryUsers = new AuthRepositoryUsers();
     this.AuthRepositoryTokens = new AuthRepositoryTokens();
+    this.tokenService = new TokenService();
     this.mailService = mailService;
   }
 
@@ -19,8 +20,10 @@ export class AuthService {
     }
 
     const hashedPassword = await bcrypt.hash(data.password, 7);
-    const verificationToken = uuidv4();
-    const tokenExpiration = Date.now() + 24 * 60 * 60 * 1000;
+
+    const verificationToken = await this.tokenService.generateVerificationToken(
+      userId
+    );
 
     const user = await this.AuthRepositoryUsers.registerUser(
       data.email,
@@ -132,14 +135,10 @@ export class AuthService {
         return res.status(400).json({ error: 'Email is required in cookies' });
       }
 
-      const resetToken = uuidv4();
-      const tokenExpiration = Date.now() + 1 * 60 * 60 * 1000;
-
-      await this.AuthRepositoryTokens.savePasswordResetToken(
-        email,
-        resetToken,
-        tokenExpiration
+      const resetToken = await this.tokenService.generatePasswordResetToken(
+        email
       );
+
       if (this.mailService) {
         try {
           await this.mailService.sendPasswordResetEmail(user.email, resetToken);

@@ -21,7 +21,7 @@ class MailServiceClass {
     const templatePath = path.join(
       __dirname,
       'templates',
-      'verifyTemplate.html'
+      './mail-templates/verify-template.html'
     );
 
     let html = fs.readFileSync(templatePath, 'utf-8');
@@ -40,7 +40,7 @@ class MailServiceClass {
     const templatePath = path.join(
       __dirname,
       'templates',
-      'resetPasswordTemplate.html'
+      './mail-templates/reset-password-template.html'
     );
 
     let html = fs.readFileSync(templatePath, 'utf-8');
