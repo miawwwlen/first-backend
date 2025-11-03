@@ -1,9 +1,9 @@
-import bcrypt from 'bcryptjs';
+import bcrypt from "bcryptjs";
 
-import { mailService } from '../mail/mail-service.js';
-import { AuthRepositoryUsers } from './repository/auth-repository-users.js';
-import { AuthRepositoryTokens } from './repository/auth-repository-tokens.js';
-import { TokenService } from './repository/auth-token-service.js';
+import { mailService } from "../mail/mail-service.js";
+import { AuthRepositoryUsers } from "../user/user-repository.js";
+import { AuthRepositoryTokens } from "../token/token-repository.js";
+import { TokenService } from "./repository/auth-token-service.js";
 
 export class AuthService {
   constructor() {
@@ -29,7 +29,7 @@ export class AuthService {
       data.email,
       hashedPassword,
       data.username,
-      data.role || 'USER',
+      data.role || "USER",
       verificationToken,
       tokenExpiration
     );
@@ -61,27 +61,27 @@ export class AuthService {
 
   async verifyEmail(token) {
     if (!token) {
-      throw new Error('Verification token is required');
+      throw new Error("Verification token is required");
     }
     const tokenRecord = await this.AuthRepositoryTokens.findByVerificationToken(
       token
     );
     if (!tokenRecord) {
-      throw new Error('Invalid or expired verification token');
+      throw new Error("Invalid or expired verification token");
     }
     const user = await this.AuthRepositoryTokens.findByEmail(tokenRecord.email);
-    if (!user) throw new Error('User not found');
+    if (!user) throw new Error("User not found");
     await this.AuthRepositoryUsers.verifyUser(user.userId);
-    return { message: 'Email successfully verified' };
+    return { message: "Email successfully verified" };
   }
 
   async login(data, session) {
     if (!data?.username || !data?.password) {
-      throw new Error('username and password are required');
+      throw new Error("username and password are required");
     }
     const user = await this.AuthRepositoryUsers.findByUsername(data.username);
     if (!user) {
-      throw new Error('User not found');
+      throw new Error("User not found");
     }
 
     const isPasswordValid = await bcrypt.compare(
@@ -89,7 +89,7 @@ export class AuthService {
       user.hashedPassword
     );
     if (!isPasswordValid) {
-      throw new Error('Invalid password');
+      throw new Error("Invalid password");
     }
 
     const sessionUser = {
@@ -115,7 +115,7 @@ export class AuthService {
       req.session.destroy((err) => {
         if (err) return reject(err);
         try {
-          req.res && req.res.clearCookie && req.res.clearCookie('connect.sid');
+          req.res && req.res.clearCookie && req.res.clearCookie("connect.sid");
         } catch (error) {
           console.log(error);
         }
@@ -127,12 +127,12 @@ export class AuthService {
   async resetPassword(req, res) {
     try {
       if (!req.cookies) {
-        return res.status(400).json({ error: 'Cookies not available' });
+        return res.status(400).json({ error: "Cookies not available" });
       }
 
       const email = req.cookies.email;
       if (!email) {
-        return res.status(400).json({ error: 'Email is required in cookies' });
+        return res.status(400).json({ error: "Email is required in cookies" });
       }
 
       const resetToken = await this.tokenService.generatePasswordResetToken(
@@ -146,12 +146,12 @@ export class AuthService {
           console.log(error);
         }
       } else {
-        console.log('Mail service not available');
+        console.log("Mail service not available");
       }
-      return { message: 'Password reset email sent' };
+      return { message: "Password reset email sent" };
     } catch (error) {
       console.log(error);
-      throw new Error('Password reset error');
+      throw new Error("Password reset error");
     }
   }
 }
