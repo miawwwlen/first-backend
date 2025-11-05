@@ -1,7 +1,11 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
@@ -21,7 +25,7 @@ class MailServiceClass {
     const templatePath = path.join(
       __dirname,
       'templates',
-      './mail-templates/verify-template.html'
+      'verify-template.html'
     );
 
     let html = fs.readFileSync(templatePath, 'utf-8');
@@ -40,7 +44,7 @@ class MailServiceClass {
     const templatePath = path.join(
       __dirname,
       'templates',
-      './mail-templates/reset-password-template.html'
+      'reset-password-template.html'
     );
 
     let html = fs.readFileSync(templatePath, 'utf-8');

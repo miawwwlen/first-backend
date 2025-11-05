@@ -11,10 +11,14 @@ export class AuthRepositoryTokens {
     });
   }
 
-  async setVereificationToken(userId, token, expiresAt) {
-    return this.prisma.token.update({
-      where: { userId },
-      data: { token, expiresAt },
+  async setVereificationToken(email, token, expiresAt) {
+    return this.prisma.token.create({
+      data: {
+        email,
+        token,
+        type: 'VERIFICATION',
+        expiresAt,
+      },
     });
   }
 
@@ -26,6 +30,18 @@ export class AuthRepositoryTokens {
         type: 'PASSWORD_RESET',
         expiresAt,
       },
+    });
+  }
+
+  async findByPasswordResetToken(token) {
+    return this.prisma.token.findUnique({
+      where: { token },
+    });
+  }
+
+  async deleteToken(token) {
+    return this.prisma.token.delete({
+      where: { token },
     });
   }
 }

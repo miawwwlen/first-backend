@@ -27,6 +27,33 @@ class authController {
     }
   }
 
+  async confirmVerifyEmail(req, res) {
+    try {
+      const { token } = req.body;
+      if (!token) {
+        return res.status(400).json({ message: 'Token is required' });
+      }
+      const result = await authService.verifyEmail(token);
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({ error: 'Verification failed' });
+    }
+  }
+
+  async resendVerificationEmail(req, res) {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ error: 'Email is required' });
+      }
+      const result = await authService.resendVerificationEmail(email);
+      res.status(200).json(result);
+    } catch (error) {
+      console.log(error);
+      res.status(400).json({ error: 'Failed to resend verification email' });
+    }
+  }
+
   async login(req, res) {
     try {
       const user = await authService.login(req.body, req.session);
@@ -47,23 +74,28 @@ class authController {
     }
   }
 
-  async getUsers(req, res) {
-    try {
-      const users = await authService.getAllUsers();
-      res.status(200).json({ users });
-    } catch (error) {
-      console.error(error);
-    }
-  }
-
   async resetPassword(req, res) {
     try {
-      const { email } = req.body;
+      const { email } = req.session?.user?.email ? req.session.user : req.body;
       await authService.resetPassword(email);
       res.status(200).json({ message: 'Password reset email sent' });
     } catch (error) {
       console.error(error);
       res.status(400).json({ error: 'Password reset error' });
+    }
+  }
+
+  async confirmResetPassword(req, res) {
+    try {
+      const { token, password } = req.body;
+      if (!token || !password) {
+        return res.status(400).json({ message: 'Token and password required' });
+      }
+
+      const result = await authService.confirmResetPassword(token, password);
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({ error: 'error.message' });
     }
   }
 }

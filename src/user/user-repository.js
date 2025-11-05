@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { AuthRepositoryTokens } from './auth-repository-tokens.js';
+import { AuthRepositoryTokens } from '../token/token-repository.js';
 
 export class AuthRepositoryUsers {
   constructor() {
@@ -13,6 +13,12 @@ export class AuthRepositoryUsers {
     });
   }
 
+  async findByUserId(userId) {
+    return this.prisma.user.findUnique({
+      where: { userId },
+    });
+  }
+
   async findByUsername(username) {
     return this.prisma.user.findUnique({
       where: { username },
@@ -22,7 +28,19 @@ export class AuthRepositoryUsers {
   async verifyUser(userId) {
     return this.prisma.user.update({
       where: { userId },
-      data: { isVerified: true, expiresAt: null },
+      data: { isVerified: true },
+    });
+  }
+
+  async updatePassword(userId, hashedPassword) {
+    return this.prisma.user.update({
+      where: { userId },
+      data: { hashedPassword },
+      select: {
+        userId: true,
+        email: true,
+        username: true,
+      },
     });
   }
 
@@ -69,6 +87,13 @@ export class AuthRepositoryUsers {
   async loginUser(email) {
     return this.prisma.user.findUnique({
       where: { email },
+    });
+  }
+
+  async updateUserProfile(userId, data) {
+    return this.prisma.user.update({
+      where: { userId },
+      data,
     });
   }
 

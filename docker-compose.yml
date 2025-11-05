@@ -1,26 +1,29 @@
-# TODO: FIX VARS TO ENV
 services:
   postgres:
     image: postgres:17
     container_name: postgres_db
     restart: always
     ports:
-      - "5442:5432"
+      - '5442:${POSTGRES_PORT}'
     environment:
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: admin
-      POSTGRES_DB: mydb
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    env_file:
+      - .env
 
   redis:
     image: redis
     container_name: redis_container
     restart: always
     ports:
-      - "6379:6379"
+      - '6379:${REDIS_PORT}'
     volumes:
       - redis_data:/data
+    env_file:
+      - .env
 
 volumes:
   postgres_data:

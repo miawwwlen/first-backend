@@ -6,10 +6,10 @@ export class TokenService {
   constructor() {
     this.tokenRepository = new AuthRepositoryTokens();
   }
-  async generateVerificationToken(userId) {
+  async generateVerificationToken(email) {
     const token = uuidv4();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    await this.tokenRepository.setVereificationToken(userId, token, expiresAt);
+    await this.tokenRepository.setVereificationToken(email, token, expiresAt);
     return token;
   }
   async generatePasswordResetToken(email) {

@@ -1,9 +1,9 @@
-import bcrypt from "bcryptjs";
+import bcrypt from 'bcryptjs';
 
-import { mailService } from "../mail/mail-service.js";
-import { AuthRepositoryUsers } from "../user/user-repository.js";
-import { AuthRepositoryTokens } from "../token/token-repository.js";
-import { TokenService } from "./repository/auth-token-service.js";
+import { mailService } from '../mail/mail-service.js';
+import { AuthRepositoryUsers } from '../user/user-repository.js';
+import { AuthRepositoryTokens } from '../token/token-repository.js';
+import { TokenService } from '../token/token-service.js';
 
 export class AuthService {
   constructor() {
@@ -21,25 +21,25 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(data.password, 7);
 
-    const verificationToken = await this.tokenService.generateVerificationToken(
-      userId
-    );
-
     const user = await this.AuthRepositoryUsers.registerUser(
       data.email,
       hashedPassword,
       data.username,
-      data.role || "USER",
-      verificationToken,
-      tokenExpiration
+      data.role || 'USER'
     );
 
-    if (mailService) {
-      try {
-        await mailService.sendVerificationEmail(user.email, verificationToken);
-      } catch (error) {
-        console.log(error);
+    try {
+      const verificationToken =
+        await this.tokenService.generateVerificationToken(user.email);
+
+      if (this.mailService) {
+        await this.mailService.sendVerificationEmail(
+          user.email,
+          verificationToken
+        );
       }
+    } catch (error) {
+      console.log(error);
     }
 
     const sessionUser = {
@@ -61,27 +61,59 @@ export class AuthService {
 
   async verifyEmail(token) {
     if (!token) {
-      throw new Error("Verification token is required");
+      throw new Error('Verification token is required');
     }
     const tokenRecord = await this.AuthRepositoryTokens.findByVerificationToken(
       token
     );
     if (!tokenRecord) {
-      throw new Error("Invalid or expired verification token");
+      throw new Error('Invalid or expired verification token');
     }
-    const user = await this.AuthRepositoryTokens.findByEmail(tokenRecord.email);
-    if (!user) throw new Error("User not found");
+    const user = await this.AuthRepositoryUsers.findByEmail(tokenRecord.email);
+    if (!user) throw new Error('User not found');
     await this.AuthRepositoryUsers.verifyUser(user.userId);
-    return { message: "Email successfully verified" };
+    return { message: 'Email successfully verified' };
+  }
+
+  async resendVerificationEmail(email) {
+    if (!email) {
+      throw new Error('Email is required');
+    }
+
+    const user = await this.AuthRepositoryUsers.findByEmail(email);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    if (user.isVerified) {
+      throw new Error('Email is already verified');
+    }
+
+    const verificationToken = await this.tokenService.generateVerificationToken(
+      email
+    );
+
+    if (this.mailService) {
+      try {
+        await this.mailService.sendVerificationEmail(email, verificationToken);
+      } catch (error) {
+        console.log(error);
+        throw new Error('Failed to send verification email');
+      }
+    } else {
+      throw new Error('Mail service not available');
+    }
+
+    return { message: 'Verification email sent successfully' };
   }
 
   async login(data, session) {
     if (!data?.username || !data?.password) {
-      throw new Error("username and password are required");
+      throw new Error('username and password are required');
     }
     const user = await this.AuthRepositoryUsers.findByUsername(data.username);
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     const isPasswordValid = await bcrypt.compare(
@@ -89,7 +121,7 @@ export class AuthService {
       user.hashedPassword
     );
     if (!isPasswordValid) {
-      throw new Error("Invalid password");
+      throw new Error('Invalid password');
     }
 
     const sessionUser = {
@@ -115,7 +147,7 @@ export class AuthService {
       req.session.destroy((err) => {
         if (err) return reject(err);
         try {
-          req.res && req.res.clearCookie && req.res.clearCookie("connect.sid");
+          req.res && req.res.clearCookie && req.res.clearCookie('connect.sid');
         } catch (error) {
           console.log(error);
         }
@@ -124,15 +156,15 @@ export class AuthService {
     });
   }
 
-  async resetPassword(req, res) {
+  async resetPassword(email) {
     try {
-      if (!req.cookies) {
-        return res.status(400).json({ error: "Cookies not available" });
+      if (!email) {
+        throw new Error('Email is required');
       }
 
-      const email = req.cookies.email;
-      if (!email) {
-        return res.status(400).json({ error: "Email is required in cookies" });
+      const user = await this.AuthRepositoryUsers.findByEmail(email);
+      if (!user) {
+        throw new Error('User not found');
       }
 
       const resetToken = await this.tokenService.generatePasswordResetToken(
@@ -141,17 +173,37 @@ export class AuthService {
 
       if (this.mailService) {
         try {
-          await this.mailService.sendPasswordResetEmail(user.email, resetToken);
+          await this.mailService.sendResetPasswordEmail(user.email, resetToken);
         } catch (error) {
           console.log(error);
         }
       } else {
-        console.log("Mail service not available");
+        console.log('Mail service not available');
       }
-      return { message: "Password reset email sent" };
+      return { message: 'Password reset email sent' };
     } catch (error) {
       console.log(error);
-      throw new Error("Password reset error");
+      throw new Error('Password reset error');
     }
+  }
+
+  async confirmResetPassword(token, newPassword) {
+    const tokenRecord =
+      await this.AuthRepositoryTokens.findByPasswordResetToken(token);
+    if (!tokenRecord || tokenRecord.expiresAt < Date.now()) {
+      throw new Error('Invalid or expired token');
+    }
+
+    const user = await this.AuthRepositoryUsers.findByEmail(tokenRecord.email);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await this.AuthRepositoryUsers.updatePassword(user.userId, hashedPassword);
+
+    await this.AuthRepositoryTokens.deleteToken(token);
+
+    return { message: 'Password successfully updated' };
   }
 }
